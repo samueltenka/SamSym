@@ -1,5 +1,4 @@
-def floor(x): return int(x)
-def ceil(x): return -floor(-x)
+from math import floor, ceil
 
 class ExprTree:
     def __init__(self, op=None, pieces=[]):
@@ -13,6 +12,7 @@ class ExprTree:
     def __sub__(self, other): return ExprTree('-', [self,other])
     def __mul__(self, other): return ExprTree('*', [self,other])
     def __truediv__(self, other): return ExprTree('/', [self,other])
+    def sqrt(self): return ExprTree('sqrt', [self])
 
     def get_height(self):
         if self.height: return self.height
@@ -21,7 +21,8 @@ class ExprTree:
         elif self.op=='/': self.height = sum(p.get_height() for p in self.pieces) + 1
         elif self.op=='paren':
             self.height = self.pieces[0].get_height()
-            if self.height >= 3: self.height += 2
+            if self.pieces[0].get_height() >= 3: self.height += 2
+        elif self.op=='sqrt': self.height = self.pieces[0].get_height()+1
         return self.height
     def get_width(self):
         if self.width: return self.width
@@ -29,8 +30,11 @@ class ExprTree:
         elif self.op in '+-*': self.width = sum(1+p.get_width() for p in self.pieces) - 1
         elif self.op=='/': self.width = max(p.get_width() for p in self.pieces)
         elif self.op=='paren':
+            self.width = self.pieces[0].get_width()+2
+            if self.pieces[0].get_height() >= 3: self.width += 2
+        elif self.op=='sqrt':
             self.width = 2+self.pieces[0].get_width()
-            if self.get_height() >= 3: self.width += 2
+            if self.pieces[0].get_height() >= 2: self.width += 1
         return self.width
 
     def __str__(self):
@@ -47,23 +51,35 @@ class ExprTree:
                 for j in range(len(self.pieces)):
                     if j!=0:
                         if i==int(h/2): lines[i] += self.op
-                        else: lines[i] += ' '
+                        else: lines[i] += '.'
                     fo, co = floor(offsets[j]), ceil(offsets[j])
-                    if fo<=i<h-co: lines[i] += substrs[j][i-fo]
-                    else: lines[i] += ' '*wps[j]
+                    if co<=i<h-fo: lines[i] += substrs[j][i-co]
+                    else: lines[i] += '.'*wps[j]
         elif self.op=='/':
             offsets = [(w-wps[j])/2.0 for j in range(len(self.pieces))]
             i=0
             for j in range(len(self.pieces)):
                 if i==int(h/2): lines.append('-'*w)
                 fo, co = floor(offsets[j]), ceil(offsets[j])
-                for l in substrs[j]: lines.append(' '*fo + l + ' '*co)
+                for l in substrs[j]: lines.append('.'*fo + l + '.'*co)
                 i += hps[j]
         elif self.op=='paren':
             lines = substrs[0]
             if hps[0] == 1: lines = ['('+lines[0]+')']
             elif hps[0] == 2: lines = ['/'+lines[0]+'\\', '\\'+lines[1]+'/']
-            elif hps[0] >= 3: lines = [' /'+' '*wps[0]+'\\ '] + \
-                                      ['| '+l+' |' for l in lines] + \
-                                      [' \\'+' '*wps[0]+'/ ']
+            elif hps[0] >= 3: lines = ['./'+'.'*wps[0]+'\\.'] + \
+                                      ['|.'+l+'.|' for l in lines] + \
+                                      ['.\\'+'.'*wps[0]+'/.']
+        elif self.op=='sqrt':
+            lines = substrs[0]
+            if hps[0] == 1: lines = ['.'*2 + '_'*wps[0]] + \
+                                    ['\\/' + lines[0]]
+            else: lines = ['.'*3 + '_'*wps[0]] + \
+                          ['..|' + l for l in lines[:-1]] + \
+                          ['\\/.' + lines[-1]]
+        ''' IDEA FOR BETTER DISPLAY OF DIVISION w/ SQRT:
+           _____________
+          | _s_+_a_+_b_
+        \/  34 + 51 + 60
+        '''
         return '\n'.join(lines)
