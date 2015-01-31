@@ -1,20 +1,15 @@
 import ExprTree
 
-e8 = ExprTree.ExprTree('a')
-e9 = ExprTree.ExprTree(99)
-ed = (e8+e9)/(e9+e8)
-print(ed()()()+e8()()())
-#print((ed+ed/ed)/(ed/ed+ed))
-
+a = ExprTree.ExprTree('a')
+b = ExprTree.ExprTree('b')
+c = ExprTree.ExprTree('c')
+_4 = ExprTree.ExprTree('c')
+_2 = ExprTree.ExprTree('c')
+print(((b*b+_4*a*c).sqrt()-b)/(_2*a))
 '''
 OUTPUT:
- /            \
-|  /        \  |
-| |  /    \  | |
-| | | 8+99 | | |
-| | | ---- | | |+(((8)))
-| | | 99+8 | | |
-| |  \    /  | |
-|  \        /  |
- \            /
+  _________  
+\/b*b+c*a*c-b
+-------------
+     c*a     
 '''
