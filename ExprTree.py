@@ -8,6 +8,7 @@ class ExprTree:
             self.op=op; self.pieces=pieces
         self.height = None; self.width = None
     def __call__(self): return ExprTree('paren', [self]) #use later for parens? ... or should parens be calculated automatically?
+    def __neg__(self): return ExprTree('neg', [self])
     def __add__(self, other): return ExprTree('+', [self,other])
     def __sub__(self, other): return ExprTree('-', [self,other])
     def __mul__(self, other): return ExprTree('*', [self,other])
@@ -18,6 +19,7 @@ class ExprTree:
     def get_height(self):
         if self.height: return self.height
         if self.op=='atom': self.height = 1
+        elif self.op=='neg': self.height = self.pieces[0].get_height()
         elif self.op in '+-*': self.height = max(p.get_height() for p in self.pieces)
         elif self.op=='/': self.height = sum(p.get_height() for p in self.pieces) + 1
         elif self.op=='pow': self.height = self.pieces[0].get_height()+self.pieces[1].get_height()
@@ -29,6 +31,7 @@ class ExprTree:
     def get_width(self):
         if self.width: return self.width
         if self.op=='atom': self.width = len(str(self.pieces[0]))
+        elif self.op=='neg': self.width = self.pieces[0].get_width()+1
         elif self.op in '+-*':
             opspace =  {'+':1, '-':1, '*':0}[self.op] # a*b --> "ab"
             self.width = sum(opspace+p.get_width() for p in self.pieces)-opspace
@@ -49,7 +52,11 @@ class ExprTree:
         wps = [p.get_width() for p in self.pieces]
         substrs = [str(p).split('\n') for p in self.pieces]
         lines = []
-        if self.op in '+-*':
+        if self.op in 'neg':
+            offset = floor(h-hps[0])
+            for i in range(h):
+                lines.append(('-' if i==offset else ' ') + substrs[0][i])
+        elif self.op in '+-*':
             offsets = [(h-hps[j])/2.0 for j in range(len(self.pieces))]
             for i in range(h):
                 lines.append('')
@@ -89,8 +96,8 @@ class ExprTree:
                           ['  |' + l for l in lines[:-1]] + \
                           ['\\/ ' + lines[-1]]
         ''' IDEA FOR BETTER DISPLAY OF DIVISION w/ SQRT:
-           _____________
-          | _s_+_a_+_b_
-        \/  34 + 51 + 60
+            _____________
+        +  | _s_+_a_+_b_
+        - \/  34 + 51 + 60
         '''
         return '\n'.join(lines)
