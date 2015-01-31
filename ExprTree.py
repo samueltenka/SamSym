@@ -29,7 +29,9 @@ class ExprTree:
     def get_width(self):
         if self.width: return self.width
         if self.op=='atom': self.width = len(str(self.pieces[0]))
-        elif self.op in '+-*': self.width = sum(1+p.get_width() for p in self.pieces) - 1
+        elif self.op in '+-*':
+            opspace =  {'+':1, '-':1, '*':0}[self.op] # a*b --> "ab"
+            self.width = sum(opspace+p.get_width() for p in self.pieces)-opspace
         elif self.op=='/': self.width = max(p.get_width() for p in self.pieces)
         elif self.op=='pow': self.width = self.pieces[0].get_width()+self.pieces[1].get_width()
         elif self.op=='sqrt':
@@ -52,7 +54,7 @@ class ExprTree:
             for i in range(h):
                 lines.append('')
                 for j in range(len(self.pieces)):
-                    if j!=0:
+                    if j!=0 and self.op!='*':
                         if i==int(h/2): lines[i] += self.op
                         else: lines[i] += ' '
                     fo, co = floor(offsets[j]), ceil(offsets[j])
