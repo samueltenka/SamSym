@@ -12,6 +12,7 @@ class ExprTree:
     def __sub__(self, other): return ExprTree('-', [self,other])
     def __mul__(self, other): return ExprTree('*', [self,other])
     def __truediv__(self, other): return ExprTree('/', [self,other])
+    def __pow__(self, other): return ExprTree('pow', [self,other])
     def sqrt(self): return ExprTree('sqrt', [self])
 
     def get_height(self):
@@ -19,22 +20,24 @@ class ExprTree:
         if self.op=='atom': self.height = 1
         elif self.op in '+-*': self.height = max(p.get_height() for p in self.pieces)
         elif self.op=='/': self.height = sum(p.get_height() for p in self.pieces) + 1
+        elif self.op=='pow': self.height = self.pieces[0].get_height()+self.pieces[1].get_height()
+        elif self.op=='sqrt': self.height = self.pieces[0].get_height()+1
         elif self.op=='paren':
             self.height = self.pieces[0].get_height()
             if self.pieces[0].get_height() >= 3: self.height += 2
-        elif self.op=='sqrt': self.height = self.pieces[0].get_height()+1
         return self.height
     def get_width(self):
         if self.width: return self.width
         if self.op=='atom': self.width = len(str(self.pieces[0]))
         elif self.op in '+-*': self.width = sum(1+p.get_width() for p in self.pieces) - 1
         elif self.op=='/': self.width = max(p.get_width() for p in self.pieces)
-        elif self.op=='paren':
-            self.width = self.pieces[0].get_width()+2
-            if self.pieces[0].get_height() >= 3: self.width += 2
+        elif self.op=='pow': self.width = self.pieces[0].get_width()+self.pieces[1].get_width()
         elif self.op=='sqrt':
             self.width = 2+self.pieces[0].get_width()
             if self.pieces[0].get_height() >= 2: self.width += 1
+        elif self.op=='paren':
+            self.width = self.pieces[0].get_width()+2
+            if self.pieces[0].get_height() >= 3: self.width += 2
         return self.width
 
     def __str__(self):
@@ -59,7 +62,8 @@ class ExprTree:
             offsets = [(w-wps[j])/2.0 for j in range(len(self.pieces))]
             i=0
             for j in range(len(self.pieces)):
-                if i==int(h/2): lines.append('-'*w)
+                ##if i==int(h/2): lines.append('-'*w)
+                if i>0: lines.append('-'*w)
                 fo, co = floor(offsets[j]), ceil(offsets[j])
                 for l in substrs[j]: lines.append(' '*fo + l + ' '*co)
                 i += hps[j]
@@ -68,8 +72,13 @@ class ExprTree:
             if hps[0] == 1: lines = ['('+lines[0]+')']
             elif hps[0] == 2: lines = ['/'+lines[0]+'\\', '\\'+lines[1]+'/']
             elif hps[0] >= 3: lines = [' /'+' '*wps[0]+'\\ '] + \
-                                      ['|.'+l+' |' for l in lines] + \
+                                      ['| '+l+' |' for l in lines] + \
                                       [' \\'+' '*wps[0]+'/ ']
+        elif self.op=='pow':
+            for l in substrs[1]: # exponent
+                lines.append(' '*wps[0] + l)
+            for l in substrs[0]: # base
+                lines.append(l + ' '*wps[1])
         elif self.op=='sqrt':
             lines = substrs[0]
             if hps[0] == 1: lines = [' '*2 + '_'*wps[0]] + \
