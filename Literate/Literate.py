@@ -3,36 +3,32 @@ definitions = {}
 def learn_from(text):
     defs = text.split('<<<')
     for d in defs[1:]:
-        sym, rest = d.split('>>>') ## error if multiple ">>>"s
-        sym, rest = sym.strip(), rest.strip()
-        if sym not in definitions:
-            definitions[sym] = rest
+        name, rest = d.split('>>>') ## error if multiple ">>>"s
+        name, rest = name.strip(), rest.strip()
+        if name not in definitions:
+            definitions[name] = rest
         else:
-            print('may not redefine macro', sym)
+            print('may not redefine macro', name)
             exit(-1)
 
 def unweave(start='START'):
     text = definitions[start]
     while '<@' in text:
-        sects = text.split('<@')
-        new_text = sects[0]
-        for s in sects[1:]:
-            sym, rest = s.split('@>') ## error if multiple "@>"s
-            spacing = sym[:len(sym)-len(sym.lstrip())]
-            sym, rest = sym.strip(), rest.strip()
-            if sym in definitions:
-                new_text += ''.join(spacing+line+'\n' for line in definitions[sym].split('\n')) + \
-                            rest + '\n'
+        new_text = ''
+        lines = text.split('\n')
+        for line in lines:
+            if '<@' in line:
+                spacing = line[:len(line)-len(line.lstrip())]
+                name = line.replace('<@', '').replace('@>', '').strip()
+                if name in definitions:
+                    for defline in definitions[name].split('\n'):
+                        new_text += spacing + defline + '\n'
+                else:
+                    print('macro not found:', name)
+                    exit(-1)
             else:
-                print('could not find macro', sym)
-                exit(-1)
+                new_text += line+'\n'
         text = new_text
-    return text
-
-
-def remove_whitespace(text):
-    while '\n\n' in text:
-        text = text.replace('\n\n', '\n')
     return text
 
 
