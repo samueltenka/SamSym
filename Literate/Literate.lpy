@@ -1,0 +1,72 @@
+<<<START>>>
+definitions = {}
+DEF_START, DEF_END, EXP_START, EXP_END = '<'*3, '>'*3, '<'+'@', '@'+'>'
+START_MACRO = 'START'; MAKE_FILE_NAME = 'make.txt'
+<@ Orient according to Makefile @>
+<@ Learn from input files @>
+<@ Expand into output file @>
+
+<<<Orient according to Makefile>>>
+filenames = []
+with open(MAKE_FILE_NAME) as file:
+   filenames = file.read().split('\n')
+out, ins = filenames[0], filenames[1:]
+
+<<<Learn from input files>>>
+for filename in ins:
+   with open(filename) as file:
+      text = file.read()
+      <@ Learn from text @>
+
+<<<Expand into output file>>>
+with open(out, 'w') as f:
+    <@ Expand to text @>
+    f.write(text)
+
+<<<Learn from text>>>
+<@ for each macro name, definition: @>
+   <@ ensure macro not already defined @>
+   definitions[name] = defn
+
+<<<for each macro name, definition:>>>
+sections = text.split(DEF_START)
+for sect in sections[1:]:
+   name, defn = sect.split(DEF_END) ## error if multiple DEF_END's
+   name, defn = name.strip(), defn.strip()
+
+<<<ensure macro not already defined>>>
+if name in definitions:
+   print('may not redefine macro', name)
+   exit(-1)
+
+<<<Expand to text>>>
+text = definitions[START_MACRO]
+<@ while some lines are expandable, for each line: @>
+      <@ expand if the line's expandable @>
+
+<<<while some lines are expandable, for each line:>>>
+while EXP_START in text:
+   lines = text.split('\n')
+   text = ''
+   for line in lines:
+
+<<<expand if the line's expandable>>>
+if EXP_START in line:
+   <@ get macro name, spacing @>
+   <@ ensure macro is defined @>
+   <@ replace macro name by definition @>
+else:
+    text += line+'\n'
+
+<<<get macro name, spacing>>>
+spacing = line[:len(line)-len(line.lstrip())]
+name = line.replace(EXP_START, '').replace(EXP_END, '').strip()
+
+<<<ensure macro is defined>>>
+if name not in definitions:
+   print('macro not found:', name)
+   exit(-1)
+
+<<<replace macro name by definition>>>
+for defline in definitions[name].split('\n'):
+   text += spacing + defline + '\n'
