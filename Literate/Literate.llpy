@@ -1,0 +1,225 @@
+================================================================================
+Literate Programming System
+================================================================================
+
+This is a program to help write programs, in particular to organize them in a
+readable way. The idea is that we write programs in a freer format than normal,
+then feed it into this program which outputs an ``illiterate" or ``expanded"
+version. As a bonus, it also processes comments such as the one currently being
+read, to produce beautiful documentation. The idea is due to Donald Knuth, and I
+love it.
+
+In particular, there exists a program $E$ that eats input files $I$ and outputs
+an expanded output $O$ in accordance with a makefile $M$: $E_M(I)=O$. We also
+have a program $D$ that outputs documentation: $D_M(I)=L$. Then $E$ is
+``described" by this program $I^\star$, in the sense that, for some $M^\star$,
+$E_{M^\star}(I^\star)=E$; or, if you are reading a nice .tex or .pdf $L^\star$
+rather than weird-looking python-markdown hybrid, in the sense that there exist
+$I^\star, M^\star$ as above, such that $D_{M^star}(I^star)=L^\star$ too.
+
+We create a ``web" --- or at least a tree --- of program snippets.
+
+
+
+--------------------------------------------------------------------------------
+Bird's Eye View
+--------------------------------------------------------------------------------
+The global structure of the program is to slurp a makefile, then learn from the
+input files specified therein, then expand those into an output file. Note that
+special characters ``<<<", ``>>>", etc. are not misinterpreted when mentioned as
+string literals: indeed, our literate programming tags must be the sole
+occupants of their line, aside from spaces and tabs. Whitespace matters.
+
+<<<START>>>
+definitions = {}; documentation = []
+DEF_BEG DEF_END, EXP_BEG, EXP_END = '<<<', '>>>', '<@', '@>'
+START_MACRO = 'START'; MAKE_FILE_NAME = 'make.txt'
+<@ Orient according to makefile @>
+<@ Learn from input files @>
+<@ Expand into outputs @>
+
+________________________________________
+Orient
+
+Makefiles have format:
+LINE 0> output filename
+LINE 1> input filename #1
+. . .
+LINE N> input filename #N
+LINE N+1> documentation filename
+
+<<<Orient according to makefile>>>
+filenames = []
+with open(MAKE_FILE_NAME) as file:
+   filenames = file.read().split('\n')
+out, ins, doc = filenames[0], filenames[1:-1], filenames[-1]
+
+________________________________________
+Learn
+
+<<<Learn from input files>>>
+for filename in ins:
+   with open(filename) as file:
+      text = file.read()
+      <@ Learn from text @>
+
+________________________________________
+Expand
+
+<<<Expand into output files>>>
+with open(out, 'w') as f:
+    <@ Expand to text @>
+    f.write(text)
+with open(doc, 'w') as f:
+    <@ Craft documentation @>
+    f.write(documentation)
+
+
+
+--------------------------------------------------------------------------------
+Learn
+--------------------------------------------------------------------------------
+
+<<<Learn from text>>>
+sections = text.split('\n\n')
+for section in sections:
+	lines = section.split('\n')
+	strp = lines[0].strip()
+   <@ macro definition case @>
+	<@ commentary case @>
+	<@ commentary continuation case @>
+
+<<<macro definition case>>>
+if len(strp)>=6 and strp[:2]==DEF_BEG and strp[-2:]==DEF_END:
+	name = strp[2:-2].strip()
+	<@ ensure macro not already defined @>
+	definitions[name]=''.join(lines[1:])
+	<@ add macro definition to documentation @>
+
+Note in the following how subsection bodies start at line[2:], not line[3:] ---
+this reflects the subsection style of underlines, atop a subsection heading,
+immediately atop the subsection body. No ``closing underlines"
+
+<<<commentary case>>>
+if len(strp)>=5:
+   if strp[:5]=='=====':
+	    documentation = [lines[1], lines[3:]] ## top heading
+	elif strp[:5]=='-----':
+	    documentation.append([lines[1], lines[3:]]) ## section 
+	elif strp[:5]=='_____':
+	    documentation[-1].append([lines[1], lines[2:]]) ## subsection
+
+________________________________________
+Minor details
+
+Commentary might be divided into multiple paragraphs, hence:
+
+<<<commentary continuation case>>>
+<@ find documentation insertion point @>
+d_insert[-1] += '\n' + ''.join(lines[3:])
+
+We keep track of macro def.s in our documentation in similar manner:
+
+<<<add macro definition to documentation>>>
+<@ find documentation insertion point @>
+d_insert.append(('CODE', name))
+
+The above insert at the ``rightmost-then-depthmost" point in documentation.
+
+<<<find documentation insertion point>>>
+d_insert = documentation
+while isinstance(d_insert[-1], list):
+   d_insert = d_insert[-1]
+
+One very powerful aspect of literate programming, we've found, is to reduce the
+clutter of gaurds such as:
+
+<<<ensure macro not already defined>>>
+if name in definitions:
+   print('may not redefine macro', name)
+   exit(-1)
+
+	
+	
+--------------------------------------------------------------------------------
+Expand
+--------------------------------------------------------------------------------
+
+________________________________________
+Create Illiterate Output Program
+
+<<<Expand to text>>>
+text = definitions[START_MACRO]
+<@ while some lines are expandable, for each line: @>
+      <@ expand if the line's expandable @>
+
+<<<while some lines are expandable, for each line:>>>
+while EXP_START in text:
+   lines = text.split('\n')
+   text = ''
+   for line in lines:
+
+<<<expand if the line's expandable>>>
+if EXP_START in line:
+   <@ get macro name, spacing @>
+   <@ ensure macro is defined @>
+   <@ replace macro name by definition @>
+else:
+    text += line+'\n'
+
+<<<get macro name, spacing>>>
+spacing = line[:len(line)-len(line.lstrip())]
+name = line.replace(EXP_START, '').replace(EXP_END, '').strip()
+
+<<<ensure macro is defined>>>
+if name not in definitions:
+   print('macro not found:', name)
+   exit(-1)
+
+<<<replace macro name by definition>>>
+for defline in definitions[name].split('\n'):
+   text += spacing + defline + '\n'
+
+________________________________________
+Create Documentation
+
+<<< Craft documentation >>>
+if documentation:
+   <@ define latex fragments @>
+	<@ flatten documentation to tex_body @>
+	<@ write to file @>
+
+<<<flatten documentation to tex_body>>>
+tex_body = ''''''
+<@ define section handler @>
+for section in documentation[1:]:
+	if isinstance(section, list):
+		tex_body += '''\section{'''+section[0]'''}'''
+		for subsect in section[1:]:
+			if isinstance(section, list):
+				tex_body += '''\subsection{'''+subsect[0]'''}'''
+				for subsubsect in subsect[1:]:
+					tex_body += translate(subsubsect)
+			tex_body += translate(subsect)
+	tex_body += translate(section)
+
+<<<define section handler>>>
+def translate(body):
+   if isinstance(body, str):
+		return body
+	elif isinstance(body, tuple) and body[0]=='CODE':
+		return '''\begin{verbatim}'''+\
+		       definitions[body[1]]+\
+				 '''\end{verbatim}'''
+
+<<<define latex fragments>>>
+tex_begin = '''\documentclass{article}
+				\usepackage{amsmath}
+				\begin{document}'''
+tex_end =   '''\end{document}'''
+tex_title = '''\title{'''+documentation[0]+'''} \maketitle'''
+
+<<<write to file>>>
+tex = tex_begin+tex_title+tex_body+tex_end
+with open(doc, 'w') as f:
+	f.write(tex)
