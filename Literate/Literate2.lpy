@@ -59,7 +59,8 @@ out, ins, doc = filenames[0], filenames[1:-1], filenames[-1]
 with open(SNIPPETS_FILENAME, 'r') as f:
    DOC_SNIPPET, \
    TITLE_SNIPPET, SECTION_SNIPPET, SUBSECTION_SNIPPET, \
-   REGULAR_SNIPPET, EXPANDABLE_SNIPPET = f.read().split('\n\n')
+   REGULAR_SNIPPET, EXPANDABLE_SNIPPET, \
+   MACRO_BOX = f.read().split('\n\n')
 
 ________________________________________
 Learn
@@ -136,6 +137,7 @@ tex_body += SUBSECTION_SNIPPET.replace('SS HEADING', lines[1])
 tex_body += '\n'.join(lines)+'\n\n'
 
 <<<document macro definition>>>
+tex_body += MACRO_BOX.replace('MACRO NAME', name)
 is_expandable = lambda line: EXP_BEG in line
 lines = definitions[name].split('\n')
 while lines:
