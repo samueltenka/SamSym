@@ -31,8 +31,8 @@ string literals: indeed, our literate programming tags must be the sole
 occupants of their line, aside from spaces and tabs. Whitespace matters.
 
 <<<START>>>
-definitions = {}; documentation = []
-DEF_BEG DEF_END, EXP_BEG, EXP_END = '<<<', '>>>', '<@', '@>'
+definitions = {}; tex_body = ''
+DEF_BEG, DEF_END, EXP_BEG, EXP_END = '<'*3, '>'*3, '<'+'@', '@'+'>'
 START_MACRO = 'START'; MAKE_FILE_NAME = 'make.txt'
 <@ Orient according to makefile @>
 <@ Learn from input files @>
@@ -43,9 +43,9 @@ Orient
 
 Makefiles have format:
 LINE 0> output filename
-LINE 1> input filename #1
+LINE 1> input filename \#1
 . . .
-LINE N> input filename #N
+LINE N> input filename \#N
 LINE N+1> documentation filename
 
 <<<Orient according to makefile>>>
@@ -66,13 +66,9 @@ for filename in ins:
 ________________________________________
 Expand
 
-<<<Expand into output files>>>
-with open(out, 'w') as f:
-    <@ Expand to text @>
-    f.write(text)
-with open(doc, 'w') as f:
-    <@ Craft documentation @>
-    f.write(documentation)
+<<<Expand into outputs>>>
+<@ Expand to text @>
+<@ Craft documentation @>
 
 
 
@@ -81,55 +77,64 @@ Learn
 --------------------------------------------------------------------------------
 
 <<<Learn from text>>>
+while '\n\n\n' in text:
+   text = text.replace('\n\n\n', '\n\n')
 sections = text.split('\n\n')
 for section in sections:
-	lines = section.split('\n')
-	strp = lines[0].strip()
+   lines = section.split('\n')
+   strp = lines[0].strip()
    <@ macro definition case @>
-	<@ commentary case @>
-	<@ commentary continuation case @>
+   <@ commentary case @>
+   <@ commentary continuation case @>
 
 <<<macro definition case>>>
-if len(strp)>=6 and strp[:2]==DEF_BEG and strp[-2:]==DEF_END:
-	name = strp[2:-2].strip()
-	<@ ensure macro not already defined @>
-	definitions[name]=''.join(lines[1:])
-	<@ add macro definition to documentation @>
+if len(strp)>=6 and strp[:3]==DEF_BEG and strp[-3:]==DEF_END:
+   name = strp[3:-3].strip()
+   <@ ensure macro not already defined @>
+   definitions[name]='\n'.join(lines[1:])
+   <@ document macro definition @>
 
-Note in the following how subsection bodies start at line[2:], not line[3:] ---
-this reflects the subsection style of underlines, atop a subsection heading,
-immediately atop the subsection body. No ``closing underlines"
+Note that, though subheadings only have above underlines, they must still have
+at least one free line underneath.
 
 <<<commentary case>>>
-if len(strp)>=5:
+elif strp[:5] in ['=====','-----','_____']:
    if strp[:5]=='=====':
-	    documentation = [lines[1], lines[3:]] ## top heading
-	elif strp[:5]=='-----':
-	    documentation.append([lines[1], lines[3:]]) ## section 
-	elif strp[:5]=='_____':
-	    documentation[-1].append([lines[1], lines[2:]]) ## subsection
-
-________________________________________
-Minor details
-
-Commentary might be divided into multiple paragraphs, hence:
+       <@ make title @>
+   elif strp[:5]=='-----':
+       <@ make section @>
+   elif strp[:5]=='_____':
+       <@ make subsection @>
+   lines = lines[3:]
+   <@ make body @>
 
 <<<commentary continuation case>>>
-<@ find documentation insertion point @>
-d_insert[-1] += '\n' + ''.join(lines[3:])
+else:
+   <@ make body @>
 
-We keep track of macro def.s in our documentation in similar manner:
+________________________________________
+Typesetting
 
-<<<add macro definition to documentation>>>
-<@ find documentation insertion point @>
-d_insert.append(('CODE', name))
+<<<make title>>>
+tex_body += '\\'+'title{'+lines[1]+'}\n' +\
+            '\\'+'maketitle\n'
 
-The above insert at the ``rightmost-then-depthmost" point in documentation.
+<<<make section>>>
+tex_body += '\\'+'section{'+lines[1]+'}\n'
 
-<<<find documentation insertion point>>>
-d_insert = documentation
-while isinstance(d_insert[-1], list):
-   d_insert = d_insert[-1]
+<<<make subsection>>>
+tex_body += '\\'+'subsection{'+lines[1]+'}\n'
+
+<<<make body>>>
+tex_body += '\n'.join(lines)+'\n\n'
+
+<<<document macro definition>>>
+tex_body += '\\'+'begin{verbatim}\n'+\
+            definitions[name]+'\n'+\
+            '\\'+'end{verbatim}\n'
+
+________________________________________
+Minor detail
 
 One very powerful aspect of literate programming, we've found, is to reduce the
 clutter of gaurds such as:
@@ -139,8 +144,7 @@ if name in definitions:
    print('may not redefine macro', name)
    exit(-1)
 
-	
-	
+
 --------------------------------------------------------------------------------
 Expand
 --------------------------------------------------------------------------------
@@ -152,15 +156,16 @@ Create Illiterate Output Program
 text = definitions[START_MACRO]
 <@ while some lines are expandable, for each line: @>
       <@ expand if the line's expandable @>
+<@ write expanded to file @>
 
 <<<while some lines are expandable, for each line:>>>
-while EXP_START in text:
+while EXP_BEG in text:
    lines = text.split('\n')
    text = ''
    for line in lines:
 
 <<<expand if the line's expandable>>>
-if EXP_START in line:
+if EXP_BEG in line:
    <@ get macro name, spacing @>
    <@ ensure macro is defined @>
    <@ replace macro name by definition @>
@@ -169,7 +174,7 @@ else:
 
 <<<get macro name, spacing>>>
 spacing = line[:len(line)-len(line.lstrip())]
-name = line.replace(EXP_START, '').replace(EXP_END, '').strip()
+name = line.replace(EXP_BEG, '').replace(EXP_END, '').strip()
 
 <<<ensure macro is defined>>>
 if name not in definitions:
@@ -180,46 +185,24 @@ if name not in definitions:
 for defline in definitions[name].split('\n'):
    text += spacing + defline + '\n'
 
+<<<write expanded to file>>>
+with open(out, 'w') as f:
+   f.write(text)
+
 ________________________________________
 Create Documentation
 
-<<< Craft documentation >>>
-if documentation:
-   <@ define latex fragments @>
-	<@ flatten documentation to tex_body @>
-	<@ write to file @>
+<<<Craft documentation>>>
+<@ assemble latex fragments @>
+<@ write documentation to file @>
 
-<<<flatten documentation to tex_body>>>
-tex_body = ''''''
-<@ define section handler @>
-for section in documentation[1:]:
-	if isinstance(section, list):
-		tex_body += '''\section{'''+section[0]'''}'''
-		for subsect in section[1:]:
-			if isinstance(section, list):
-				tex_body += '''\subsection{'''+subsect[0]'''}'''
-				for subsubsect in subsect[1:]:
-					tex_body += translate(subsubsect)
-			tex_body += translate(subsect)
-	tex_body += translate(section)
+<<<assemble latex fragments>>>
+tex_begin = '\\'+'documentclass{article}'+\
+            '\\'+'usepackage{amsmath}'+\
+            '\\'+'begin{document}\n'
+tex_end =   '\\'+'end{document}'
+tex = tex_begin+tex_body+tex_end
 
-<<<define section handler>>>
-def translate(body):
-   if isinstance(body, str):
-		return body
-	elif isinstance(body, tuple) and body[0]=='CODE':
-		return '''\begin{verbatim}'''+\
-		       definitions[body[1]]+\
-				 '''\end{verbatim}'''
-
-<<<define latex fragments>>>
-tex_begin = '''\documentclass{article}
-				\usepackage{amsmath}
-				\begin{document}'''
-tex_end =   '''\end{document}'''
-tex_title = '''\title{'''+documentation[0]+'''} \maketitle'''
-
-<<<write to file>>>
-tex = tex_begin+tex_title+tex_body+tex_end
+<<<write documentation to file>>>
 with open(doc, 'w') as f:
-	f.write(tex)
+   f.write(tex)
