@@ -1,13 +1,18 @@
 definitions = {}; tex_body = ''
 DEF_BEG, DEF_END, EXP_BEG, EXP_END = '<'*3, '>'*3, '<'+'@', '@'+'>'
-START_MACRO = 'START'; MAKE_FILE_NAME = 'make.txt'
+START_MACRO='START'; MAKE_FILENAME='make.txt'; SNIPPETS_FILENAME='snippets.tex'
 filenames = []
-with open(MAKE_FILE_NAME) as file:
+with open(MAKE_FILENAME) as file:
    filenames = file.read().split('\n')
 out, ins, doc = filenames[0], filenames[1:-1], filenames[-1]
+with open(SNIPPETS_FILENAME, 'r') as f:
+   DOC_SNIPPET, \
+   TITLE_SNIPPET, SECTION_SNIPPET, SUBSECTION_SNIPPET, \
+   REGULAR_SNIPPET, EXPANDABLE_SNIPPET = f.read().split('\n\n')
 for filename in ins:
    with open(filename) as file:
       text = file.read()
+      text = '\n'.join((line if line.strip() else '') for line in text.split('\n'))
       while '\n\n\n' in text:
          text = text.replace('\n\n\n', '\n\n')
       sections = text.split('\n\n')
@@ -20,17 +25,28 @@ for filename in ins:
                print('may not redefine macro', name)
                exit(-1)
             definitions[name]='\n'.join(lines[1:])
-            tex_body += '\\'+'begin{verbatim}\n'+\
-                        definitions[name]+'\n'+\
-                        '\\'+'end{verbatim}\n'
+            is_expandable = lambda line: EXP_BEG in line
+            lines = definitions[name].split('\n')
+            while lines:
+               if lines and not is_expandable(lines[0]):
+                  code = ''
+                  while lines and not is_expandable(lines[0]):
+                      code += lines[0]+'\n'
+                      lines = lines[1:]
+                  tex_body += REGULAR_SNIPPET.replace('REGULAR CODE', code)
+               if lines and is_expandable(lines[0]):
+                  code = ''
+                  while lines and is_expandable(lines[0]):
+                      code += lines[0]+'\n'
+                      lines = lines[1:]
+                  tex_body += EXPANDABLE_SNIPPET.replace('EXPANDABLE', code)
          elif strp[:5] in ['=====','-----','_____']:
             if strp[:5]=='=====':
-                tex_body += '\\'+'title{'+lines[1]+'}\n' +\
-                            '\\'+'maketitle\n'
+                tex_body += TITLE_SNIPPET.replace('TITLE', lines[1])
             elif strp[:5]=='-----':
-                tex_body += '\\'+'section{'+lines[1]+'}\n'
+                tex_body += SECTION_SNIPPET.replace('S HEADING', lines[1])
             elif strp[:5]=='_____':
-                tex_body += '\\'+'subsection{'+lines[1]+'}\n'
+                tex_body += SUBSECTION_SNIPPET.replace('SS HEADING', lines[1])
             lines = lines[3:]
             tex_body += '\n'.join(lines)+'\n\n'
          else:
@@ -52,13 +68,10 @@ while EXP_BEG in text:
           text += line+'\n'
 with open(out, 'w') as f:
    f.write(text)
-tex_begin = '\\'+'documentclass{article}'+\
-            '\\'+'usepackage{amsmath}'+\
-            '\\'+'begin{document}\n'
-tex_end =   '\\'+'end{document}'
-tex = tex_begin+tex_body+tex_end
+tex = DOC_SNIPPET.replace('BODY', tex_body)
 with open(doc, 'w') as f:
    f.write(tex)
+
 
 
 
