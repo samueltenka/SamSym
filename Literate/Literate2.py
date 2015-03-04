@@ -24,17 +24,18 @@ for filename in ins:
             while d_insert and isinstance(d_insert[-1], list):
                d_insert = d_insert[-1]
             d_insert.append(('CODE', name))
-         if len(strp)>=5:
+         elif len(strp)>=5:
             if strp[:5]=='=====':
                documentation = [lines[1], lines[3:]] ## top heading
             elif strp[:5]=='-----':
                documentation.append([lines[1], lines[3:]]) ## section
             elif strp[:5]=='_____':
                documentation[-1].append([lines[1], lines[2:]]) ## subsection
-         d_insert = documentation
-         while d_insert and isinstance(d_insert[-1], list):
-            d_insert = d_insert[-1]
-         d_insert.append('\n' + ''.join(lines[3:]))
+         else:
+            d_insert = documentation
+            while d_insert and isinstance(d_insert[-1], list):
+               d_insert = d_insert[-1]
+            d_insert.append('\n' + '\n'.join(lines[3:]))
 with open(out, 'w') as f:
    text = definitions[START_MACRO]
    while EXP_BEG in text:
@@ -53,17 +54,21 @@ with open(out, 'w') as f:
              text += line+'\n'
    f.write(text)
 
-tex_begin = '\\documentclass{article} \\usepackage{amsmath} \\begin{document}'
+tex_begin = '''\\documentclass{article}
+               \\usepackage[left=1in, right=2in, top=1in, bottom=3in]{geometry}
+               \\usepackage{amsmath}
+               \\begin{document}\n'''
 tex_end =   '\\end{document}'
-tex_title = '\\title{'+documentation[0]+'} \\maketitle' if isinstance(documentation[0], str) else ''
+tex_title = '\\title{'+documentation[0]+'}\n' +\
+            '\\maketitle\n' if isinstance(documentation[0], str) else ''
 tex_body = ''
 def translate(body):
   if isinstance(body, str):
      return body
   elif isinstance(body, tuple) and body[0]=='CODE':
-     return '\\begin{verbatim}'+\
+     return '\\begin{verbatim}\n'+\
             definitions[body[1]]+\
-            '\\end{verbatim}'
+            '\n\\end{verbatim}'
 for section in documentation[1:]:
   if isinstance(section, list):
      tex_body += '\\section{'+section[0]+'}'
