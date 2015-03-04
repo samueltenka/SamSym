@@ -1,5 +1,5 @@
 <<<START>>>
-<@ Define Symbolic Classes @>
+<@ define symbolic operations @>
 
 #include <iostream>
 char input[1000];
