@@ -1,225 +1,79 @@
-================================================================================
-Literate Programming System
-================================================================================
-
-This is a program to help write programs, in particular to organize them in a
-readable way. The idea is that we write programs in a freer format than normal,
-then feed it into this program which outputs an ``illiterate" or ``expanded"
-version. As a bonus, it also processes comments such as the one currently being
-read, to produce beautiful documentation. The idea is due to Donald Knuth, and I
-love it.
-
-In particular, there exists a program $E$ that eats input files $I$ and outputs
-an expanded output $O$ in accordance with a makefile $M$: $E_M(I)=O$. We also
-have a program $D$ that outputs documentation: $D_M(I)=L$. Then $E$ is
-``described" by this program $I^\star$, in the sense that, for some $M^\star$,
-$E_{M^\star}(I^\star)=E$; or, if you are reading a nice .tex or .pdf $L^\star$
-rather than weird-looking python-markdown hybrid, in the sense that there exist
-$I^\star, M^\star$ as above, such that $D_{M^\star}(I^\star)=L^\star$ too.
-
-We create a ``web" --- or at least a tree --- of program snippets.
-
-
-
---------------------------------------------------------------------------------
-Bird's Eye View
---------------------------------------------------------------------------------
-The global structure of the program is to slurp a makefile, then learn from the
-input files specified therein, then expand those into an output file. Note that
-special characters ``<<<", ``>>>", etc. are not misinterpreted when mentioned as
-string literals: indeed, our literate programming tags must be the sole
-occupants of their line, aside from spaces and tabs. Whitespace matters.
-
-<<<START>>>
 definitions = {}; tex_body = ''
 DEF_BEG, DEF_END, EXP_BEG, EXP_END = '<'*3, '>'*3, '<'+'@', '@'+'>'
 START_MACRO='START'; MAKE_FILENAME='make.txt'; SNIPPETS_FILENAME='snippets.tex'
-<@ Orient according to makefile@>
-<@ Load tex snippets @>
-<@ Learn from input files @>
-<@ Expand into outputs @>
-
-________________________________________
-Orient
-
-Makefiles have format:
-LINE 0> output filename
-LINE 1> input filename \#1
-. . .
-LINE N> input filename \#N
-LINE N+1> documentation filename
-
-<<<Orient according to makefile>>>
 filenames = []
 with open(MAKE_FILENAME) as file:
    filenames = file.read().split('\n')
 out, ins, doc = filenames[0], filenames[1:-1], filenames[-1]
-
-<<<Load tex snippets>>>
 with open(SNIPPETS_FILENAME, 'r') as f:
    DOC_SNIPPET, \
    TITLE_SNIPPET, SECTION_SNIPPET, SUBSECTION_SNIPPET, \
    REGULAR_SNIPPET, EXPANDABLE_SNIPPET, \
    MACRO_BOX = f.read().split('\n\n')
-
-________________________________________
-Learn
-
-<<<Learn from input files>>>
 for filename in ins:
    with open(filename) as file:
       text = file.read()
-      <@ Learn from text @>
-
-________________________________________
-Expand
-
-<<<Expand into outputs>>>
-<@ Expand to text @>
-<@ Craft documentation @>
-
-
-
---------------------------------------------------------------------------------
-Learn
---------------------------------------------------------------------------------
-
-<<<Learn from text>>>
-text = '\n'.join((line if line.strip() else '') for line in text.split('\n'))
-while '\n\n\n' in text:
-   text = text.replace('\n\n\n', '\n\n')
-sections = text.split('\n\n')
-for section in sections:
-   lines = section.split('\n')
-   strp = lines[0].strip()
-   <@ macro definition case @>
-   <@ commentary case @>
-   <@ commentary continuation case @>
-
-<<<macro definition case>>>
-if len(strp)>=6 and strp[:3]==DEF_BEG and strp[-3:]==DEF_END:
-   name = strp[3:-3].strip()
-   <@ ensure macro not already defined @>
-   definitions[name]='\n'.join(lines[1:])
-   <@ document macro definition @>
-
-Note that, though subheadings only have above underlines, they must still have
-at least one free line underneath.
-
-<<<commentary case>>>
-elif strp[:5] in ['=====','-----','_____']:
-   if strp[:5]=='=====':
-       <@ make title @>
-   elif strp[:5]=='-----':
-       <@ make section @>
-   elif strp[:5]=='_____':
-       <@ make subsection @>
-   lines = lines[3:]
-   <@ make body @>
-
-<<<commentary continuation case>>>
-else:
-   <@ make body @>
-
-________________________________________
-Typesetting
-
-<<<make title>>>
-tex_body += TITLE_SNIPPET.replace('TITLE', lines[1])
-
-<<<make section>>>
-tex_body += SECTION_SNIPPET.replace('S HEADING', lines[1])
-
-<<<make subsection>>>
-tex_body += SUBSECTION_SNIPPET.replace('SS HEADING', lines[1])
-
-<<<make body>>>
-tex_body += '\n'.join(lines)+'\n\n'
-
-<<<document macro definition>>>
-tex_body += MACRO_BOX.replace('MACRO NAME', name)
-is_expandable = lambda line: EXP_BEG in line
-lines = definitions[name].split('\n')
-while lines:
-   <@ regular block @>
-   <@ expandable block @>
-   
-<<<regular block>>>
-if lines and not is_expandable(lines[0]):
-   code = ''
-   while lines and not is_expandable(lines[0]):
-       code += lines[0]+'\n'
-       lines = lines[1:]
-   tex_body += REGULAR_SNIPPET.replace('REGULAR CODE', code)
-
-<<<expandable block>>>
-if lines and is_expandable(lines[0]):
-   code = ''
-   while lines and is_expandable(lines[0]):
-       code += lines[0]+'\n'
-       lines = lines[1:]
-   tex_body += EXPANDABLE_SNIPPET.replace('EXPANDABLE', code)
-
-________________________________________
-Minor detail
-
-One very powerful aspect of literate programming, we've found, is to reduce the
-clutter of gaurds such as:
-
-<<<ensure macro not already defined>>>
-if name in definitions:
-   print('may not redefine macro', name)
-   exit(-1)
-
-
---------------------------------------------------------------------------------
-Expand
---------------------------------------------------------------------------------
-
-________________________________________
-Create Illiterate Output Program
-
-<<<Expand to text>>>
+      text = '\n'.join((line if line.strip() else '') for line in text.split('\n'))
+      while '\n\n\n' in text:
+         text = text.replace('\n\n\n', '\n\n')
+      sections = text.split('\n\n')
+      for section in sections:
+         lines = section.split('\n')
+         strp = lines[0].strip()
+         if len(strp)>=6 and strp[:3]==DEF_BEG and strp[-3:]==DEF_END:
+            name = strp[3:-3].strip()
+            if name in definitions:
+               print('may not redefine macro', name)
+               exit(-1)
+            definitions[name]='\n'.join(lines[1:])
+            tex_body += MACRO_BOX.replace('MACRO NAME', name)
+            is_expandable = lambda line: EXP_BEG in line
+            lines = definitions[name].split('\n')
+            while lines:
+               if lines and not is_expandable(lines[0]):
+                  code = ''
+                  while lines and not is_expandable(lines[0]):
+                      code += lines[0]+'\n'
+                      lines = lines[1:]
+                  tex_body += REGULAR_SNIPPET.replace('REGULAR CODE', code)
+               if lines and is_expandable(lines[0]):
+                  code = ''
+                  while lines and is_expandable(lines[0]):
+                      code += lines[0]+'\n'
+                      lines = lines[1:]
+                  tex_body += EXPANDABLE_SNIPPET.replace('EXPANDABLE', code)
+         elif strp[:5] in ['=====','-----','_____']:
+            if strp[:5]=='=====':
+                tex_body += TITLE_SNIPPET.replace('TITLE', lines[1])
+            elif strp[:5]=='-----':
+                tex_body += SECTION_SNIPPET.replace('S HEADING', lines[1])
+            elif strp[:5]=='_____':
+                tex_body += SUBSECTION_SNIPPET.replace('SS HEADING', lines[1])
+            lines = lines[3:]
+            tex_body += '\n'.join(lines)+'\n\n'
+         else:
+            tex_body += '\n'.join(lines)+'\n\n'
 text = definitions[START_MACRO]
-<@ while some lines are expandable, for each line: @>
-      <@ expand if the line's expandable @>
-<@ write expanded to file @>
-
-<<<while some lines are expandable, for each line:>>>
 while EXP_BEG in text:
    lines = text.split('\n')
    text = ''
    for line in lines:
-
-<<<expand if the line's expandable>>>
-if EXP_BEG in line:
-   <@ get macro name, spacing @>
-   <@ ensure macro is defined @>
-   <@ replace macro name by definition @>
-else:
-    text += line+'\n'
-
-<<<get macro name, spacing>>>
-spacing = line[:len(line)-len(line.lstrip())]
-name = line.replace(EXP_BEG, '').replace(EXP_END, '').strip()
-
-<<<ensure macro is defined>>>
-if name not in definitions:
-   print('macro not found:', name)
-   exit(-1)
-
-<<<replace macro name by definition>>>
-for defline in definitions[name].split('\n'):
-   text += spacing + defline + '\n'
-
-<<<write expanded to file>>>
+      if EXP_BEG in line:
+         spacing = line[:len(line)-len(line.lstrip())]
+         name = line.replace(EXP_BEG, '').replace(EXP_END, '').strip()
+         if name not in definitions:
+            print('macro not found:', name)
+            exit(-1)
+         for defline in definitions[name].split('\n'):
+            text += spacing + defline + '\n'
+      else:
+          text += line+'\n'
 with open(out, 'w') as f:
    f.write(text)
-
-________________________________________
-Create Documentation
-
-<<<Craft documentation>>>
 tex = DOC_SNIPPET.replace('BODY', tex_body)
 with open(doc, 'w') as f:
    f.write(tex)
+
+
+
+
