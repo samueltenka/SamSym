@@ -10,7 +10,7 @@ e.g., input might contain
 note that for simplicity, atomic symbols are "0-ary" symbols.
 
 <<<parse input into expression>>>
-Expression* current;
+Expression* current = &E;
 parse(input, 0, &current);
 
 <<< how to parse expression >>>
