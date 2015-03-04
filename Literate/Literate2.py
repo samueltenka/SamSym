@@ -1,4 +1,4 @@
-definitions = {}; documentation = []
+definitions = {}; tex_body = ''
 DEF_BEG, DEF_END, EXP_BEG, EXP_END = '<'*3, '>'*3, '<'+'@', '@'+'>'
 START_MACRO = 'START'; MAKE_FILE_NAME = 'make.txt'
 filenames = []
@@ -9,7 +9,7 @@ for filename in ins:
    with open(filename) as file:
       text = file.read()
       while '\n\n\n' in text:
-          text = text.replace('\n\n\n', '\n\n')
+         text = text.replace('\n\n\n', '\n\n')
       sections = text.split('\n\n')
       for section in sections:
          lines = section.split('\n')
@@ -20,71 +20,45 @@ for filename in ins:
                print('may not redefine macro', name)
                exit(-1)
             definitions[name]='\n'.join(lines[1:])
-            d_insert = documentation
-            while d_insert and isinstance(d_insert[-1], list):
-               d_insert = d_insert[-1]
-            d_insert.append(('CODE', name))
-         elif len(strp)>=5:
+            tex_body += '\\'+'begin{verbatim}\n'+\
+                        definitions[name]+'\n'+\
+                        '\\'+'end{verbatim}\n'
+         elif strp[:5] in ['=====','-----','_____']:
             if strp[:5]=='=====':
-               documentation = [lines[1], lines[3:]] ## top heading
+                tex_body += '\\'+'title{'+lines[1]+'}\n' +\
+                            '\\'+'maketitle\n'
             elif strp[:5]=='-----':
-               documentation.append([lines[1], lines[3:]]) ## section
+                tex_body += '\\'+'section{'+lines[1]+'}\n'
             elif strp[:5]=='_____':
-               documentation[-1].append([lines[1], lines[2:]]) ## subsection
+                tex_body += '\\'+'subsection{'+lines[1]+'}\n'
+            lines = lines[3:]
+            tex_body += '\n'.join(lines)+'\n\n'
          else:
-            d_insert = documentation
-            while d_insert and isinstance(d_insert[-1], list):
-               d_insert = d_insert[-1]
-            d_insert.append('\n' + '\n'.join(lines[3:]))
+            tex_body += '\n'.join(lines)+'\n\n'
+text = definitions[START_MACRO]
+while EXP_BEG in text:
+   lines = text.split('\n')
+   text = ''
+   for line in lines:
+      if EXP_BEG in line:
+         spacing = line[:len(line)-len(line.lstrip())]
+         name = line.replace(EXP_BEG, '').replace(EXP_END, '').strip()
+         if name not in definitions:
+            print('macro not found:', name)
+            exit(-1)
+         for defline in definitions[name].split('\n'):
+            text += spacing + defline + '\n'
+      else:
+          text += line+'\n'
 with open(out, 'w') as f:
-   text = definitions[START_MACRO]
-   while EXP_BEG in text:
-      lines = text.split('\n')
-      text = ''
-      for line in lines:
-         if EXP_BEG in line:
-            spacing = line[:len(line)-len(line.lstrip())]
-            name = line.replace(EXP_BEG, '').replace(EXP_END, '').strip()
-            if name not in definitions:
-               print('macro not found:', name)
-               exit(-1)
-            for defline in definitions[name].split('\n'):
-               text += spacing + defline + '\n'
-         else:
-             text += line+'\n'
    f.write(text)
-
-tex_begin = '''\\documentclass{article}
-               \\usepackage[left=1in, right=2in, top=1in, bottom=3in]{geometry}
-               \\usepackage{amsmath}
-               \\begin{document}\n'''
-tex_end =   '\\end{document}'
-tex_title = '\\title{'+documentation[0]+'}\n' +\
-            '\\maketitle\n' if isinstance(documentation[0], str) else ''
-tex_body = ''
-def translate(body):
-  if isinstance(body, str):
-     return body
-  elif isinstance(body, tuple) and body[0]=='CODE':
-     return '\\begin{verbatim}\n'+\
-            definitions[body[1]]+\
-            '\n\\end{verbatim}'
-for section in documentation[1:]:
-  if isinstance(section, list):
-     tex_body += '\\section{'+section[0]+'}'
-     for subsect in section[1:]:
-        if isinstance(section, list):
-           tex_body += '\\subsection{'+subsect[0]+'}'
-           for subsubsect in subsect[1:]:
-              tex_body += translate(subsubsect)
-        else:
-            tex_body += translate(subsect)
-  else:
-     tex_body += translate(section)
-tex = tex_begin+tex_title+tex_body+tex_end
+tex_begin = '\\'+'documentclass{article}'+\
+            '\\'+'usepackage{amsmath}'+\
+            '\\'+'begin{document}\n'
+tex_end =   '\\'+'end{document}'
+tex = tex_begin+tex_body+tex_end
 with open(doc, 'w') as f:
    f.write(tex)
-
 
 
 
