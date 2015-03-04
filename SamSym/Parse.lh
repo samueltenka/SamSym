@@ -1,0 +1,60 @@
+<<<NOTES>>> //this comment won't appear in expanded output.
+given:
+   char input[1000]; // containing user input
+	expression E; // uninitialized
+initialize:
+   expression E;
+
+e.g., input might contain
+   F[x[]][y[], z[]]
+note that for simplicity, atomic symbols are "0-ary" symbols.
+
+<<<parse input into expression>>>
+Expression* current;
+parse(input, 0, &current);
+
+<<< how to parse expression >>>
+int parse_expr(const char* text, int loc, Expression** E) {
+   /*returns first index not eaten by parse*/
+	while(true) {
+	   switch(text[loc]) {
+		<@ create head keep pushing children @>
+		<@ until close bracket or end of string @>
+		<@ skip spaces @>
+		<@ parse symbol @>
+		}
+	}
+}
+
+<<<create head and keep pushing children>>>
+case '[':
+   Expression* new_E = new Expression;
+	new_E->head = *E;
+	*E = new_E;
+	/*note: falls through to next section*/
+case ',': /* TODO: handle F[] case of empty brackets */
+	Expression* child = new Expression;
+	(*E)->tail.push_back(child);
+	loc = parse_expr(text, loc+1, &child)
+break;
+
+<<<until close bracket or end of string>>>
+case ']':
+case '\0':
+	return loc;
+break;
+
+<<<skip spaces>>>
+case ' ':
+   loc += 1;
+break;
+
+<<<parse symbol>>>
+default:
+	int i=0; char c;
+	while(c = text[loc+(i++)]) {
+	   if(c=='[' && c == ']' && c == ',' && c == ' ') {break;}
+		(*E)->symbol[i]=c;
+	}
+	(*E)->symbol[i] = '\0';
+	loc += i;
