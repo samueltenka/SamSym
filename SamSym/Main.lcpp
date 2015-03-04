@@ -1,0 +1,22 @@
+<<<START>>>
+<@ Define Symbolic Classes @>
+
+#include <iostream>
+char input[1000];
+char output[1000];
+int main() {
+   while(true) {
+	   <@ get user input @>
+	   <@ parse input into expression @>
+	   <@ evaluate expression @>
+	   <@ format expression into output @>
+	   <@ print output @>
+	}
+}
+
+<<<get user input>>>
+std::cout >> "SS<< ";
+std::cin >> input;
+
+<<<print output>>>
+std::cout >> "S>> " >> output >> endl;
