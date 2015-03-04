@@ -31,15 +31,14 @@ special characters ``<<<", ``>>>", etc. are not misinterpreted when mentioned as
 string literals: indeed, our literate programming tags must be the sole
 occupants of their line, aside from spaces and tabs. Whitespace matters.
 
-{\color{YellowOrange}\begin{verbatim}definitions = {}; tex_body = ''
+$$\boxed{\text{START}}$${\color{YellowOrange}\begin{verbatim}definitions = {}; tex_body = ''
 DEF_BEG, DEF_END, EXP_BEG, EXP_END = '<'*3, '>'*3, '<'+'@', '@'+'>'
 START_MACRO='START'; MAKE_FILENAME='make.txt'; SNIPPETS_FILENAME='snippets.tex'
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}<@ Orient according to makefile@>
 <@ Load tex snippets @>
 <@ Learn from input files @>
 <@ Expand into outputs @>
-\end{verbatim}}
-\subsection{Orient}
+\end{verbatim}}\subsection{Orient}
 
 Makefiles have format:
 LINE 0> output filename
@@ -48,29 +47,28 @@ LINE 1> input filename \#1
 LINE N> input filename \#N
 LINE N+1> documentation filename
 
-{\color{YellowOrange}\begin{verbatim}filenames = []
+$$\boxed{\text{Orient according to makefile}}$${\color{YellowOrange}\begin{verbatim}filenames = []
 with open(MAKE_FILENAME) as file:
    filenames = file.read().split('\n')
 out, ins, doc = filenames[0], filenames[1:-1], filenames[-1]
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}with open(SNIPPETS_FILENAME, 'r') as f:
+\end{verbatim}}$$\boxed{\text{Load tex snippets}}$${\color{YellowOrange}\begin{verbatim}with open(SNIPPETS_FILENAME, 'r') as f:
    DOC_SNIPPET, \
    TITLE_SNIPPET, SECTION_SNIPPET, SUBSECTION_SNIPPET, \
-   REGULAR_SNIPPET, EXPANDABLE_SNIPPET = f.read().split('\n\n')
+   REGULAR_SNIPPET, EXPANDABLE_SNIPPET, \
+   MACRO_BOX = f.read().split('\n\n')
 \end{verbatim}}\subsection{Learn}
 
-{\color{YellowOrange}\begin{verbatim}for filename in ins:
+$$\boxed{\text{Learn from input files}}$${\color{YellowOrange}\begin{verbatim}for filename in ins:
    with open(filename) as file:
       text = file.read()
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}      <@ Learn from text @>
-\end{verbatim}}
-\subsection{Expand}
+\end{verbatim}}\subsection{Expand}
 
-{\color{MidnightBlue}\begin{verbatim}<@ Expand to text @>
+$$\boxed{\text{Expand into outputs}}$${\color{MidnightBlue}\begin{verbatim}<@ Expand to text @>
 <@ Craft documentation @>
-\end{verbatim}}
-\section{Learn}
+\end{verbatim}}\section{Learn}
 
-{\color{YellowOrange}\begin{verbatim}text = '\n'.join((line if line.strip() else '') for line in text.split('\n'))
+$$\boxed{\text{Learn from text}}$${\color{YellowOrange}\begin{verbatim}text = '\n'.join((line if line.strip() else '') for line in text.split('\n'))
 while '\n\n\n' in text:
    text = text.replace('\n\n\n', '\n\n')
 sections = text.split('\n\n')
@@ -80,52 +78,44 @@ for section in sections:
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}   <@ macro definition case @>
    <@ commentary case @>
    <@ commentary continuation case @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}if len(strp)>=6 and strp[:3]==DEF_BEG and strp[-3:]==DEF_END:
+\end{verbatim}}$$\boxed{\text{macro definition case}}$${\color{YellowOrange}\begin{verbatim}if len(strp)>=6 and strp[:3]==DEF_BEG and strp[-3:]==DEF_END:
    name = strp[3:-3].strip()
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}   <@ ensure macro not already defined @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}   definitions[name]='\n'.join(lines[1:])
+\end{verbatim}}{\color{YellowOrange}\begin{verbatim}   definitions[name]='\n'.join(lines[1:])
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}   <@ document macro definition @>
-\end{verbatim}}
-Note that, though subheadings only have above underlines, they must still have
+\end{verbatim}}Note that, though subheadings only have above underlines, they must still have
 at least one free line underneath.
 
-{\color{YellowOrange}\begin{verbatim}elif strp[:5] in ['=====','-----','_____']:
+$$\boxed{\text{commentary case}}$${\color{YellowOrange}\begin{verbatim}elif strp[:5] in ['=====','-----','_____']:
    if strp[:5]=='=====':
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}       <@ make title @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}   elif strp[:5]=='-----':
+\end{verbatim}}{\color{YellowOrange}\begin{verbatim}   elif strp[:5]=='-----':
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}       <@ make section @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}   elif strp[:5]=='_____':
+\end{verbatim}}{\color{YellowOrange}\begin{verbatim}   elif strp[:5]=='_____':
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}       <@ make subsection @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}   lines = lines[3:]
+\end{verbatim}}{\color{YellowOrange}\begin{verbatim}   lines = lines[3:]
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}   <@ make body @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}else:
+\end{verbatim}}$$\boxed{\text{commentary continuation case}}$${\color{YellowOrange}\begin{verbatim}else:
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}   <@ make body @>
-\end{verbatim}}
-\subsection{Typesetting}
+\end{verbatim}}\subsection{Typesetting}
 
-{\color{YellowOrange}\begin{verbatim}tex_body += TITLE_SNIPPET.replace('TITLE', lines[1])
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}tex_body += SECTION_SNIPPET.replace('S HEADING', lines[1])
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}tex_body += SUBSECTION_SNIPPET.replace('SS HEADING', lines[1])
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}tex_body += '\n'.join(lines)+'\n\n'
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}is_expandable = lambda line: EXP_BEG in line
+$$\boxed{\text{make title}}$${\color{YellowOrange}\begin{verbatim}tex_body += TITLE_SNIPPET.replace('TITLE', lines[1])
+\end{verbatim}}$$\boxed{\text{make section}}$${\color{YellowOrange}\begin{verbatim}tex_body += SECTION_SNIPPET.replace('S HEADING', lines[1])
+\end{verbatim}}$$\boxed{\text{make subsection}}$${\color{YellowOrange}\begin{verbatim}tex_body += SUBSECTION_SNIPPET.replace('SS HEADING', lines[1])
+\end{verbatim}}$$\boxed{\text{make body}}$${\color{YellowOrange}\begin{verbatim}tex_body += '\n'.join(lines)+'\n\n'
+\end{verbatim}}$$\boxed{\text{document macro definition}}$${\color{YellowOrange}\begin{verbatim}tex_body += MACRO_BOX.replace('MACRO NAME', name)
+is_expandable = lambda line: EXP_BEG in line
 lines = definitions[name].split('\n')
 while lines:
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}   <@ regular block @>
    <@ expandable block @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}if lines and not is_expandable(lines[0]):
+\end{verbatim}}$$\boxed{\text{regular block}}$${\color{YellowOrange}\begin{verbatim}if lines and not is_expandable(lines[0]):
    code = ''
    while lines and not is_expandable(lines[0]):
        code += lines[0]+'\n'
        lines = lines[1:]
    tex_body += REGULAR_SNIPPET.replace('REGULAR CODE', code)
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}if lines and is_expandable(lines[0]):
+\end{verbatim}}$$\boxed{\text{expandable block}}$${\color{YellowOrange}\begin{verbatim}if lines and is_expandable(lines[0]):
    code = ''
    while lines and is_expandable(lines[0]):
        code += lines[0]+'\n'
@@ -136,41 +126,39 @@ while lines:
 One very powerful aspect of literate programming, we've found, is to reduce the
 clutter of gaurds such as:
 
-{\color{YellowOrange}\begin{verbatim}if name in definitions:
+$$\boxed{\text{ensure macro not already defined}}$${\color{YellowOrange}\begin{verbatim}if name in definitions:
    print('may not redefine macro', name)
    exit(-1)
 \end{verbatim}}\section{Expand}
 
 \subsection{Create Illiterate Output Program}
 
-{\color{YellowOrange}\begin{verbatim}text = definitions[START_MACRO]
+$$\boxed{\text{Expand to text}}$${\color{YellowOrange}\begin{verbatim}text = definitions[START_MACRO]
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}<@ while some lines are expandable, for each line: @>
       <@ expand if the line's expandable @>
 <@ write expanded to file @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}while EXP_BEG in text:
+\end{verbatim}}$$\boxed{\text{while some lines are expandable, for each line:}}$${\color{YellowOrange}\begin{verbatim}while EXP_BEG in text:
    lines = text.split('\n')
    text = ''
    for line in lines:
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}if EXP_BEG in line:
+\end{verbatim}}$$\boxed{\text{expand if the line's expandable}}$${\color{YellowOrange}\begin{verbatim}if EXP_BEG in line:
 \end{verbatim}}{\color{MidnightBlue}\begin{verbatim}   <@ get macro name, spacing @>
    <@ ensure macro is defined @>
    <@ replace macro name by definition @>
-\end{verbatim}}
-{\color{YellowOrange}\begin{verbatim}else:
+\end{verbatim}}{\color{YellowOrange}\begin{verbatim}else:
     text += line+'\n'
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}spacing = line[:len(line)-len(line.lstrip())]
+\end{verbatim}}$$\boxed{\text{get macro name, spacing}}$${\color{YellowOrange}\begin{verbatim}spacing = line[:len(line)-len(line.lstrip())]
 name = line.replace(EXP_BEG, '').replace(EXP_END, '').strip()
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}if name not in definitions:
+\end{verbatim}}$$\boxed{\text{ensure macro is defined}}$${\color{YellowOrange}\begin{verbatim}if name not in definitions:
    print('macro not found:', name)
    exit(-1)
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}for defline in definitions[name].split('\n'):
+\end{verbatim}}$$\boxed{\text{replace macro name by definition}}$${\color{YellowOrange}\begin{verbatim}for defline in definitions[name].split('\n'):
    text += spacing + defline + '\n'
-\end{verbatim}}{\color{YellowOrange}\begin{verbatim}with open(out, 'w') as f:
+\end{verbatim}}$$\boxed{\text{write expanded to file}}$${\color{YellowOrange}\begin{verbatim}with open(out, 'w') as f:
    f.write(text)
 \end{verbatim}}\subsection{Create Documentation}
 
-{\color{YellowOrange}\begin{verbatim}tex = DOC_SNIPPET.replace('BODY', tex_body)
+$$\boxed{\text{Craft documentation}}$${\color{YellowOrange}\begin{verbatim}tex = DOC_SNIPPET.replace('BODY', tex_body)
 with open(doc, 'w') as f:
    f.write(tex)
 \end{verbatim}}
